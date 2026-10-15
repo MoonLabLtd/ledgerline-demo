@@ -1,0 +1,10 @@
+pnpm-lock.yaml
+drizzle
+drizzle/meta
+.next
+data
+src/components/ui
+.tmp
+test-results
+playwright-report
+next-env.d.ts
