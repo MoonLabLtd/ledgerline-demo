@@ -1,114 +1,56 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-import { afterEach, expect } from "vitest";
+import { afterEach } from "vitest";
 
 import { openDatabase, type DB } from "@/db/client";
-import { AppError } from "@/server/errors";
-import { createSale, type SaleWithItems } from "@/server/services/sales";
-import { ZodError } from "zod";
-import type { CustomerInput, SaleInput } from "@/lib/validation";
+import { createSale } from "@/server/services/sales";
 
-const dbRegistry: DB[] = [];
-const dirRegistry: string[] = [];
+const dbs: DB[] = [];
+const dirs: string[] = [];
 
-/** Creates a fresh temp directory registered for cleanup. */
 export function tmpDir(): string {
-  const dir = mkdtempSync(path.join(os.tmpdir(), "sales-dashboard-test-"));
-  dirRegistry.push(dir);
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sales-dashboard-test-"));
+  dirs.push(dir);
   return dir;
 }
 
-/** Opens a real SQLite database (migrated) registered for cleanup. */
-export function testDb(file = path.join(tmpDir(), "test.db")): DB {
+export function testDb(file: string = path.join(tmpDir(), "test.db")): DB {
   const db = openDatabase(file);
-  dbRegistry.push(db);
+  dbs.push(db);
   return db;
 }
 
-/** Local-time timestamp helper: `new Date(y, m - 1, d, h)`. */
 export function at(y: number, m: number, d: number, h = 12): number {
   return new Date(y, m - 1, d, h).getTime();
 }
 
-export type SaleOverrides = {
-  occurredAt?: number;
-  orderRef?: string | null;
-  customer?: CustomerInput;
-  paymentMethod?: SaleInput["paymentMethod"];
-  status?: SaleInput["status"];
-  items?: SaleInput["items"];
-  discountMinor?: number;
-  taxRateBp?: number;
-  notes?: string | null;
-  item?: { product?: string; category?: string; qty?: number; price?: number; cost?: number | null };
+type SaleOverrides = Record<string, unknown> & {
+  qty?: number;
+  price?: number;
+  cost?: number | null;
+  product?: string;
+  category?: string;
 };
 
-/** Creates a sale with the canonical defaults; overrides are spread over the input. */
-export function sale(db: DB, overrides: SaleOverrides = {}): SaleWithItems {
-  const { item, items: itemList, ...rest } = overrides;
-  const itemInput: SaleInput["items"][number] = {
-    productId: null,
-    newProduct: { name: item?.product ?? "Widget", categoryName: item?.category ?? "Gadgets", sku: null },
-    quantity: item?.qty ?? 1,
-    unitPriceMinor: item?.price ?? 1000,
-    unitCostMinor: item?.cost === undefined ? null : item.cost,
-  };
+export function sale(db: DB, o: SaleOverrides = {}) {
+  const { qty = 1, price = 1000, cost = null, product = "Widget", category = "Gadgets", ...rest } = o;
   return createSale(db, {
-    occurredAt: rest.occurredAt ?? at(2026, 3, 10),
-    orderRef: rest.orderRef ?? null,
-    customer: (rest.customer ?? { mode: "walkin" }) as CustomerInput,
-    paymentMethod: rest.paymentMethod ?? "card",
-    status: rest.status ?? "completed",
-    items: itemList ?? [itemInput],
-    discountMinor: rest.discountMinor ?? 0,
-    taxRateBp: rest.taxRateBp ?? 0,
-    notes: rest.notes ?? null,
+    occurredAt: at(2026, 3, 10),
+    customer: { mode: "walkin" },
+    paymentMethod: "card",
+    status: "completed",
+    items: [{ newProduct: { name: product, categoryName: category }, quantity: qty, unitPriceMinor: price, unitCostMinor: cost }],
+    discountMinor: 0,
+    taxRateBp: 0,
+    ...rest,
   });
 }
 
-/** Asserts the exact `AppError` status code and message produced by `fn`. */
-export function expectAppError(fn: () => void, status: number, message: string): void {
-  let caught: unknown;
-  try {
-    fn();
-  } catch (error) {
-    caught = error;
-  }
-  expect(caught).toBeInstanceOf(AppError);
-  if (caught instanceof AppError) {
-    expect(caught.status).toBe(status);
-    expect(caught.message).toBe(message);
-  }
-}
-
-/** Asserts that `fn` throws a Zod schema validation error. */
-export function expectZodError(fn: () => void): void {
-  let caught: unknown;
-  try {
-    fn();
-  } catch (error) {
-    caught = error;
-  }
-  expect(caught).toBeInstanceOf(ZodError);
-}
-
-/** Row count via raw SQL for atomicity/cleanup assertions. */
-export function countRows(db: DB, table: "sales" | "sale_items" | "products" | "customers"): number {
-  const row = db.$client.prepare(`SELECT count(*) AS n FROM ${table}`).get() as { n: number };
-  return row.n;
-}
-
 afterEach(() => {
-  for (const db of dbRegistry) {
-    if (db.$client.open) {
-      db.$client.close();
-    }
+  for (const db of dbs.splice(0)) {
+    if (db.$client.open) db.$client.close();
   }
-  for (const dir of dirRegistry) {
-    rmSync(dir, { recursive: true, force: true });
-  }
-  dbRegistry.length = 0;
-  dirRegistry.length = 0;
+  for (const dir of dirs.splice(0)) fs.rmSync(dir, { recursive: true, force: true });
 });

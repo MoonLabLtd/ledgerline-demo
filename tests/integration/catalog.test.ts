@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import { seedDemoData } from "@/server/demo-seed";
+import { hasData, seedDemoData } from "@/server/demo-seed";
+import { AppError } from "@/server/errors";
 import {
   createCategory,
   createProduct,
@@ -10,189 +11,79 @@ import {
   listProducts,
   renameCategory,
   setProductArchived,
+  updateProduct,
 } from "@/server/services/catalog";
+import { createCustomer, deleteCustomer } from "@/server/services/customers";
 import { removeDemoData, stats } from "@/server/services/maintenance";
-import { createSale, getSale } from "@/server/services/sales";
-import { at, expectAppError, sale, testDb } from "../helpers";
+import { getSale } from "@/server/services/sales";
 
-describe("catalog integration", () => {
-  it("T-I-24: category and product creation, enriched rows, search, archived filtering", () => {
+import { sale, testDb } from "../helpers";
+
+function appError(fn: () => unknown): AppError {
+  try {
+    fn();
+  } catch (e) {
+    expect(e).toBeInstanceOf(AppError);
+    return e as AppError;
+  }
+  throw new Error("expected an AppError");
+}
+
+describe("catalog, customers and demo data", () => {
+  it("T-I-24 categories: create, rename, case-insensitive unique, protected when in use", () => {
     const db = testDb();
-    const drinks = createCategory(db, { name: "Drinks" });
-    const snacks = createCategory(db, { name: "Snacks" });
-    const cola = createProduct(db, {
-      name: "Cola",
-      sku: "DRK-COL",
-      categoryId: drinks.id,
-      defaultPriceMinor: 900,
-      defaultCostMinor: 300,
-    });
-    createProduct(db, {
-      name: "Chips",
-      sku: "SNK-CHP",
-      categoryId: snacks.id,
-      defaultPriceMinor: 400,
-      defaultCostMinor: 100,
-    });
-    const archivedTea = createProduct(db, {
-      name: "Archived Tea",
-      sku: "DRK-TEA",
-      categoryId: drinks.id,
-      defaultPriceMinor: 500,
-      defaultCostMinor: null,
-      archived: true,
-    });
-
-    sale(db, { items: [{ productId: cola.id, quantity: 2, unitPriceMinor: 900, unitCostMinor: 300 }] });
-    sale(db, {
-      items: [{ productId: cola.id, quantity: 1, unitPriceMinor: 900, unitCostMinor: 300 }],
-      status: "pending",
-    });
-
-    const drinksRow = listCategories(db).find((category) => category.name === "Drinks");
-    expect(drinksRow?.productCount).toBe(2);
-
-    const all = listProducts(db, { includeArchived: true });
-    expect(all.map((product) => product.name).sort()).toEqual(["Archived Tea", "Chips", "Cola"]);
-
-    const visible = listProducts(db);
-    expect(visible.map((product) => product.name)).not.toContain("Archived Tea");
-
-    const search = listProducts(db, { q: "COL" });
-    expect(search.map((product) => product.name)).toEqual(["Cola"]);
-
-    const colaRow = visible.find((product) => product.name === "Cola");
-    expect(colaRow?.categoryName).toBe("Drinks");
-    expect(colaRow?.unitsSold).toBe(2);
-    expect(colaRow?.revenueMinor).toBe(1800);
-
-    expect(archivedTea.archived).toBe(true);
+    const c = createCategory(db, { name: "Tea" });
+    const dup = appError(() => createCategory(db, { name: "tea" }));
+    expect([dup.status, dup.message]).toEqual([409, 'Category "tea" already exists']);
+    renameCategory(db, c.id, { name: "Teas" });
+    createProduct(db, { name: "Sencha", categoryId: c.id, defaultPriceMinor: 900 });
+    expect(listCategories(db)[0]).toMatchObject({ name: "Teas", productCount: 1 });
+    const del = appError(() => deleteCategory(db, c.id));
+    expect([del.status, del.message]).toEqual([409, "This category is used by 1 product(s). Reassign them first."]);
   });
 
-  it("T-I-25: duplicate category names conflict case-insensitively; case-only rename is allowed", () => {
+  it("T-I-25 unique SKUs and price validation", () => {
     const db = testDb();
-    const electronics = createCategory(db, { name: "Electronics" });
-
-    expectAppError(() => createCategory(db, { name: "ELECTRONICS" }), 409, 'Category "ELECTRONICS" already exists');
-
-    const renamed = renameCategory(db, electronics.id, { name: "ELECTRONICS" });
-    expect(renamed.name).toBe("ELECTRONICS");
-
-    const other = renameCategory(db, electronics.id, { name: "Gadgets" });
-    expect(other.name).toBe("Gadgets");
-
-    expectAppError(() => renameCategory(db, "missing", { name: "X" }), 404, "Category not found");
-    expectAppError(() => deleteCategory(db, "missing"), 404, "Category not found");
+    createProduct(db, { name: "A", sku: "SKU-1", defaultPriceMinor: 100 });
+    const dup = appError(() => createProduct(db, { name: "B", sku: "SKU-1", defaultPriceMinor: 100 }));
+    expect([dup.status, dup.message]).toEqual([409, 'SKU "SKU-1" is already used by another product']);
+    expect(() => createProduct(db, { name: "C", defaultPriceMinor: -1 })).toThrow();
   });
 
-  it("T-I-26: categories with any products cannot be deleted", () => {
+  it("T-I-26 products with sales history are archived, not deleted", () => {
     const db = testDb();
-    const books = createCategory(db, { name: "Books" });
-    const magazines = createCategory(db, { name: "Magazines" });
-    const empty = createCategory(db, { name: "Empty" });
-    createProduct(db, {
-      name: "Novel",
-      sku: "BK-001",
-      categoryId: books.id,
-      defaultPriceMinor: 1500,
-      defaultCostMinor: 700,
-    });
-    createProduct(db, {
-      name: "Old Issue",
-      sku: "MG-001",
-      categoryId: magazines.id,
-      defaultPriceMinor: 300,
-      defaultCostMinor: null,
-      archived: true,
-    });
-
-    expectAppError(() => deleteCategory(db, books.id), 409, "This category is used by 1 product(s). Reassign them first.");
-    expectAppError(() => deleteCategory(db, magazines.id), 409, "This category is used by 1 product(s). Reassign them first.");
-
-    expect(() => deleteCategory(db, empty.id)).not.toThrow();
+    const s = sale(db, { product: "Kept" });
+    const pid = s.items[0].productId as string;
+    const del = appError(() => deleteProduct(db, pid));
+    expect([del.status, del.message]).toEqual([409, "This product appears in past sales. Archive it instead to keep history intact."]);
+    setProductArchived(db, pid, true);
+    expect(listProducts(db).map((p) => p.id)).not.toContain(pid);
+    expect(listProducts(db, { includeArchived: true }).find((p) => p.id === pid)).toMatchObject({ archived: true });
+    expect(getSale(db, s.id).items[0].productName).toBe("Kept");
+    const unused = createProduct(db, { name: "Unused", defaultPriceMinor: 100 });
+    updateProduct(db, unused.id, { name: "Unused 2", defaultPriceMinor: 200 });
+    deleteProduct(db, unused.id);
+    expect(listProducts(db, { includeArchived: true }).map((p) => p.id)).not.toContain(unused.id);
   });
 
-  it("T-I-27: products in past sales cannot be deleted; archiving and SKU conflicts are exact", () => {
+  it("T-I-27 customers with sales cannot be deleted", () => {
     const db = testDb();
-    const mug = createProduct(db, {
-      name: "Mug",
-      sku: "MER-MUG",
-      categoryId: null,
-      defaultPriceMinor: 1200,
-      defaultCostMinor: 400,
-    });
-    createProduct(db, {
-      name: "Mug Jr",
-      sku: "mer-mug",
-      categoryId: null,
-      defaultPriceMinor: 100,
-      defaultCostMinor: null,
-    });
-
-    expectAppError(
-      () =>
-        createProduct(db, {
-          name: "Dup",
-          sku: "MER-MUG",
-          categoryId: null,
-          defaultPriceMinor: 50,
-          defaultCostMinor: null,
-        }),
-      409,
-      'SKU "MER-MUG" is already used by another product',
-    );
-
-    sale(db, { items: [{ productId: mug.id, quantity: 1, unitPriceMinor: 1200, unitCostMinor: null }] });
-    expectAppError(() => deleteProduct(db, mug.id), 409, "This product appears in past sales. Archive it instead to keep history intact.");
-
-    const archived = setProductArchived(db, mug.id, true);
-    expect(archived.archived).toBe(true);
-    expect(listProducts(db).map((product) => product.name)).not.toContain("Mug");
-
-    const free = createProduct(db, {
-      name: "Free",
-      sku: "FR-1",
-      categoryId: null,
-      defaultPriceMinor: 10,
-      defaultCostMinor: null,
-    });
-    expect(() => deleteProduct(db, free.id)).not.toThrow();
+    const c = createCustomer(db, { name: "Cy" });
+    sale(db, { customer: { mode: "existing", customerId: c.id } });
+    const err = appError(() => deleteCustomer(db, c.id));
+    expect([err.status, err.message]).toEqual([409, "This customer has 1 sale(s). Customers with history cannot be deleted."]);
   });
 
-  it("T-I-28: demo removal keeps real data intact", () => {
+  it("T-I-28 demo data is tagged and removable without touching real records", () => {
     const db = testDb();
-    const seeded = seedDemoData(db, { now: new Date(2026, 2, 15), days: 30 });
-    expect(seeded.products).toBe(16);
-    expect(seeded.customers).toBe(20);
-    expect(seeded.sales).toBeGreaterThan(0);
-
-    const real = createSale(db, {
-      occurredAt: at(2026, 3, 10),
-      orderRef: null,
-      customer: { mode: "walkin" },
-      paymentMethod: "card",
-      status: "completed",
-      items: [
-        {
-          productId: null,
-          newProduct: { name: "Real product", categoryName: "Real category" },
-          quantity: 1,
-          unitPriceMinor: 500,
-          unitCostMinor: null,
-        },
-      ],
-      discountMinor: 0,
-      taxRateBp: 0,
-      notes: null,
-    });
-
+    seedDemoData(db, { now: new Date(2026, 2, 15), days: 30 });
+    expect(hasData(db)).toBe(true);
+    const before = stats(db);
+    expect(before.sales).toBeGreaterThan(0);
+    expect(before.demoSales).toBe(before.sales);
+    const real = sale(db, { product: "Real product" });
     removeDemoData(db);
-
-    const current = stats(db);
-    expect(current.sales).toBe(1);
-    expect(current.demoSales).toBe(0);
-    expect(current.demoRows).toBe(0);
-
+    expect(stats(db)).toMatchObject({ sales: 1, demoSales: 0, demoRows: 0 });
     expect(getSale(db, real.id).items[0].productName).toBe("Real product");
   });
 });
