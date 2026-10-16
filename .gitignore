@@ -49,3 +49,6 @@ next-env.d.ts
 /playwright-report/
 /.tmp/
 !.env.example
+
+# test reporter output
+/.vitest/
