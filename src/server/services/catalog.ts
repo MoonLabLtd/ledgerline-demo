@@ -66,7 +66,7 @@ export function listCategories(db: DB): CategoryRow[] {
       id: categories.id,
       name: categories.name,
       productCount: sql<number>`(
-        SELECT count(*) FROM products p WHERE p.category_id = ${categories.id}
+        SELECT count(*) FROM products p WHERE p.category_id = ${categories}.${categories.id}
       )`,
     })
     .from(categories)
