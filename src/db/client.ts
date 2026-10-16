@@ -5,12 +5,17 @@ import Database from "better-sqlite3";
 import { drizzle, type BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 
-import { migrationsDir } from "@/db/paths";
+import { dbPath, migrationsDir } from "@/db/paths";
 import * as schema from "@/db/schema";
 
 export type DB = BetterSQLite3Database<typeof schema> & {
   $client: Database.Database;
 };
+
+declare global {
+  var __salesDb: DB | undefined;
+  var __salesDbFile: string | undefined;
+}
 
 export class DatabaseInitError extends Error {
   readonly dbFile: string;
@@ -60,5 +65,23 @@ export function openDatabase(file: string, migrationsFolder: string = migrations
 
   db.insert(schema.settings).values({ id: 1 }).onConflictDoNothing().run();
 
+  return db;
+}
+
+export function getDb(): DB {
+  const file = dbPath();
+  const cached = globalThis.__salesDb;
+
+  if (cached && globalThis.__salesDbFile === file) {
+    return cached;
+  }
+
+  if (cached) {
+    cached.$client.close();
+  }
+
+  const db = openDatabase(file);
+  globalThis.__salesDb = db;
+  globalThis.__salesDbFile = file;
   return db;
 }

@@ -1,17 +1,19 @@
 import { connection } from "next/server";
 
-import { openDatabase, type DB } from "@/db/client";
 import { dbPath } from "@/db/paths";
+import { getDb } from "@/server/db";
+import { AppError } from "@/server/errors";
 
 export const instant = false;
-
-let db: DB | null = null;
 
 async function ensureDatabase(): Promise<string> {
   await connection();
   const file = dbPath();
-  if (!db) {
-    db = openDatabase(file);
+  try {
+    getDb();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new AppError(500, `Database unavailable: ${message}`);
   }
   return file;
 }
