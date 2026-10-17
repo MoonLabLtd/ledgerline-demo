@@ -1,4 +1,5 @@
 import { addDays, startOfDay } from "date-fns";
+import { sql } from "drizzle-orm";
 
 import type { DB } from "@/db/client";
 import { categories, customers, products, saleItems, sales, type Product } from "@/db/schema";
@@ -139,6 +140,11 @@ export function seedDemoData(
 
     const today = startOfDay(now);
     const nowMs = now.getTime();
+    // Continue after any existing demo refs so `db:seed --force` never collides; a fresh database starts at DEMO-00001.
+    const lastDemoRef = tx.get<{ n: number | null }>(
+      sql`SELECT max(CAST(substr(order_ref, 6) AS INTEGER)) AS n FROM sales WHERE order_ref GLOB 'DEMO-[0-9]*'`,
+    );
+    const firstDemoNumber = lastDemoRef?.n ?? 0;
     let saleCounter = 0;
 
     for (let d = days; d >= 0; d -= 1) {
@@ -182,7 +188,7 @@ export function seedDemoData(
         const sale = tx
           .insert(sales)
           .values({
-            orderRef: `DEMO-${String(saleCounter).padStart(5, "0")}`,
+            orderRef: `DEMO-${String(firstDemoNumber + saleCounter).padStart(5, "0")}`,
             occurredAt: timeMs,
             customerId: customer !== null ? customer.id : null,
             customerName: customer !== null ? customer.name : null,

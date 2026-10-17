@@ -30,6 +30,24 @@ export type SaleRow = {
   isDemo: boolean;
 };
 
+export type SaleExportRow = {
+  id: string;
+  orderRef: string;
+  occurredAt: number;
+  status: string;
+  paymentMethod: string;
+  customerName: string | null;
+  subtotalMinor: number;
+  discountMinor: number;
+  netMinor: number;
+  taxMinor: number;
+  totalMinor: number;
+  costMinor: number | null;
+  notes: string | null;
+  units: number;
+  products: string | null;
+};
+
 const itemCountSubquery = sql<number>`(
   SELECT count(*)
   FROM sale_items si
@@ -367,6 +385,66 @@ export function listSales(db: DB, q: SalesQuery): { rows: SaleRow[]; total: numb
     .all();
 
   return { rows, total: n };
+}
+
+const exportUnitsSubquery = sql<number>`(
+  SELECT coalesce(SUM(si.quantity), 0)
+  FROM sale_items si
+  WHERE si.sale_id = ${sales}.${sales.id}
+)`;
+
+const exportProductsSubquery = sql<string | null>`(
+  SELECT group_concat(item, '; ')
+  FROM (
+    SELECT si.product_name || ' x' || si.quantity AS item
+    FROM sale_items si
+    WHERE si.sale_id = ${sales}.${sales.id}
+    ORDER BY si.position ASC
+  )
+)`;
+
+const exportRowColumns = {
+  id: sales.id,
+  orderRef: sales.orderRef,
+  occurredAt: sales.occurredAt,
+  status: sales.status,
+  paymentMethod: sales.paymentMethod,
+  customerName: sales.customerName,
+  subtotalMinor: sales.subtotalMinor,
+  discountMinor: sales.discountMinor,
+  netMinor: sales.netMinor,
+  taxMinor: sales.taxMinor,
+  totalMinor: sales.totalMinor,
+  costMinor: sales.costMinor,
+  notes: sales.notes,
+  units: exportUnitsSubquery,
+  products: exportProductsSubquery,
+};
+
+/**
+ * Unpaged, export-optimized sale rows. Reuses `salesWhere` for filtering and
+ * the sales query schema's sort/direction enums unchanged.
+ */
+export function listSalesForExport(db: DB, q: SalesQuery): SaleExportRow[] {
+  const query = salesQuerySchema.parse(q);
+  const where = salesWhere(query);
+
+  const sortColumn =
+    query.sort === "date"
+      ? sql`${sales.occurredAt}`
+      : query.sort === "amount"
+        ? sql`${sales.totalMinor}`
+        : query.sort === "quantity"
+          ? unitsOrderBySubquery
+          : sql`${sales.status}`;
+  const direction = query.dir === "asc" ? sql`ASC` : sql`DESC`;
+
+  return db
+    .select(exportRowColumns)
+    .from(sales)
+    .where(where ?? undefined)
+    .orderBy(sql`${sortColumn} ${direction}`, sql`${sales.occurredAt} DESC`)
+    .all();
 }
 
 function assertSkuFree(tx: DbOrTx, sku: string): void {
