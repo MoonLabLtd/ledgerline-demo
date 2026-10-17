@@ -1,7 +1,3 @@
 export default function Home() {
-  return (
-    <main className="p-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Ledgerline</h1>
-    </main>
-  );
+  return <p className="text-muted-foreground">Overview arrives in a later release.</p>;
 }
