@@ -390,14 +390,17 @@ export function listSales(db: DB, q: SalesQuery): { rows: SaleRow[]; total: numb
 const exportUnitsSubquery = sql<number>`(
   SELECT coalesce(SUM(si.quantity), 0)
   FROM sale_items si
-  WHERE si.sale_id = ${sales.id}
+  WHERE si.sale_id = ${sales}.${sales.id}
 )`;
 
 const exportProductsSubquery = sql<string | null>`(
-  SELECT group_concat(si.product_name || ' x' || si.quantity, '; ')
-  FROM sale_items si
-  WHERE si.sale_id = ${sales.id}
-  ORDER BY si.position ASC
+  SELECT group_concat(item, '; ')
+  FROM (
+    SELECT si.product_name || ' x' || si.quantity AS item
+    FROM sale_items si
+    WHERE si.sale_id = ${sales}.${sales.id}
+    ORDER BY si.position ASC
+  )
 )`;
 
 const exportRowColumns = {

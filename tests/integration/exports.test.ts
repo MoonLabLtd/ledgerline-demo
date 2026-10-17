@@ -20,6 +20,8 @@ describe("exports", () => {
       "Tax (USD)": "1.25",
       "Total (USD)": "13.75",
       Notes: "'=HYPERLINK(1)",
+      Items: "Widget x1",
+      Units: "1",
     });
   });
 
