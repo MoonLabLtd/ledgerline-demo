@@ -29,7 +29,12 @@ export function MultiSelect<T extends string>({ label, options, labels, value, o
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">
         {options.map((option) => (
-          <DropdownMenuCheckboxItem key={option} checked={value.includes(option)} onCheckedChange={() => toggle(option)}>
+          <DropdownMenuCheckboxItem
+            key={option}
+            checked={value.includes(option)}
+            onCheckedChange={() => toggle(option)}
+            onSelect={(event) => event.preventDefault()}
+          >
             {labels[option]}
           </DropdownMenuCheckboxItem>
         ))}

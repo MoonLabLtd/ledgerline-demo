@@ -28,7 +28,6 @@ export function useSettings() {
     queryKey: ["settings"],
     queryFn: () => api<Settings>("/api/settings"),
     staleTime: Infinity,
-    placeholderData: DEFAULT_SETTINGS,
   });
 }
 
@@ -75,16 +74,22 @@ function subscribeMinute(listener: () => void): () => void {
 }
 
 function getMinuteClock(): number {
-  return typeof window === "undefined" ? 0 : minuteClock;
+  const now = Math.floor(Date.now() / 60_000);
+  if (now !== minuteClock) minuteClock = now;
+  return minuteClock;
+}
+
+function getServerMinuteClock(): number {
+  return 0;
 }
 
 export function useDateRange() {
-  const { data: settings } = useSettings();
+  const { data: settings, isPending } = useSettings();
   const storedRange = useUiStore((state) => state.range);
   const setRange = useUiStore((state) => state.setRange);
-  const minute = useSyncExternalStore(subscribeMinute, getMinuteClock, getMinuteClock);
+  const minute = useSyncExternalStore(subscribeMinute, getMinuteClock, getServerMinuteClock);
 
-  const settingsPending = storedRange === null && settings === undefined;
+  const settingsPending = storedRange === null && isPending;
   const range = useMemo(() => {
     if (minute === 0 || settingsPending) return null;
     const selection: RangeSelection = storedRange ?? { preset: (settings?.defaultRange ?? DEFAULT_SETTINGS.defaultRange) as RangePreset };
