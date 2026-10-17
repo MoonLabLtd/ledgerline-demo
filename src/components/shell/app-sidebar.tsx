@@ -28,7 +28,7 @@ export function AppSidebar() {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild size="lg">
+            <SidebarMenuButton asChild size="lg" className="h-10">
               <Link href="/" onClick={() => setOpenMobile(false)}>
                 <span
                   aria-hidden="true"
@@ -36,7 +36,7 @@ export function AppSidebar() {
                 >
                   L
                 </span>
-                <span className="font-semibold group-data-[collapsible=icon]:hidden">Ledgerline</span>
+                <span className="text-sm font-semibold tracking-tight group-data-[collapsible=icon]:hidden">Ledgerline</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
