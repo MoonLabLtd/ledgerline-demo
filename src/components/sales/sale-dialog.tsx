@@ -140,7 +140,7 @@ function TotalsPanel({ control, money }: { control: Control<SaleFormValues>; mon
         </div>
         <div className="flex items-center justify-between">
           <dt className="font-medium">Total</dt>
-          <dd className="font-semibold">{money(totals.totalMinor)}</dd>
+          <dd className="text-base font-semibold">{money(totals.totalMinor)}</dd>
         </div>
       </dl>
     </div>
@@ -405,6 +405,7 @@ function SaleForm({ mode, sale, saleId }: SaleFormProps) {
                 <ToggleGroup
                   type="single"
                   variant="outline"
+                  spacing={0}
                   aria-label="Customer type"
                   value={field.value}
                   onValueChange={(value) => {
@@ -598,7 +599,7 @@ export function SaleDialog() {
           <SheetDescription>{header.description}</SheetDescription>
         </SheetHeader>
         {loading ? (
-          <div aria-busy="true" className="flex min-h-0 flex-1 flex-col gap-4 px-6 py-5">
+          <div aria-busy="true" className="flex min-h-0 flex-1 flex-col gap-4 p-6">
             <Skeleton className="h-9" />
             <Skeleton className="h-9" />
             <Skeleton className="h-32" />
