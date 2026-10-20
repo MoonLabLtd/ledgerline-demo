@@ -129,10 +129,7 @@ export function SaleActions({ id, orderRef }: { id: string; orderRef: string }) 
                 </div>
               </dl>
               {sale.notes ? (
-                <div className="rounded-md border bg-muted/40 p-2.5 text-xs text-muted-foreground">
-                  <div className="mb-0.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Notes</div>
-                  {sale.notes}
-                </div>
+                <p className="rounded-md border bg-muted/40 p-2.5 text-xs whitespace-pre-line text-muted-foreground">{sale.notes}</p>
               ) : null}
             </div>
           ) : (

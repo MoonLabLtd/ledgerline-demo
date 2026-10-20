@@ -148,6 +148,11 @@ export function SalesTable() {
     setPagination((p) => ({ ...p, pageIndex: 0, pageSize: storePageSize }));
   }
 
+  const lastPageIndex = Math.max(0, Math.ceil((sales.data?.total ?? 0) / pagination.pageSize) - 1);
+  if (sales.data && !sales.isPlaceholderData && pagination.pageIndex > lastPageIndex) {
+    setPagination((p) => ({ ...p, pageIndex: lastPageIndex }));
+  }
+
   function handleSortingChange(updater: Updater<SortingState>) {
     setSorting(updater);
     setPagination((p) => ({ ...p, pageIndex: 0 }));
@@ -209,12 +214,12 @@ export function SalesTable() {
           cell: ({ getValue }) => <span className="whitespace-nowrap text-muted-foreground">{dateTime(getValue())}</span>,
         }),
         helper.accessor("orderRef", {
-          id: "order",
+          id: "orderRef",
           header: "Order",
           cell: ({ getValue }) => <span className="font-mono text-xs">{getValue()}</span>,
         }),
         helper.accessor("firstProduct", {
-          id: "product",
+          id: "firstProduct",
           header: "Product",
           cell: ({ row, getValue }) => {
             const name = getValue<string | null>();
@@ -227,7 +232,7 @@ export function SalesTable() {
           },
         }),
         helper.accessor("customerName", {
-          id: "customer",
+          id: "customerName",
           header: "Customer",
           cell: ({ getValue }) => {
             const name = getValue<string | null>();
@@ -247,7 +252,7 @@ export function SalesTable() {
           cell: ({ getValue }) => <span className="font-medium tabular-nums">{money(getValue())}</span>,
         }),
         helper.accessor("paymentMethod", {
-          id: "payment",
+          id: "paymentMethod",
           header: "Payment",
           cell: ({ getValue }) => {
             const method = getValue<string>();
