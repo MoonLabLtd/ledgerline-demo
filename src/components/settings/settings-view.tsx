@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { DatabaseBackup, Download, Sparkles, Trash2 } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 
 import { Confirm } from "@/components/common/confirm";
@@ -37,6 +37,8 @@ const EXPORTS = [
 ] as const;
 
 type SystemBackup = { name: string; size: number; createdAt: number };
+
+const subscribeNothing = () => () => {};
 
 type SystemInfo = {
   dbPath: string;
@@ -87,8 +89,14 @@ function PreferencesCard() {
   const { setRange } = useDateRange();
   const { theme, setTheme } = useTheme();
   const [saving, setSaving] = useState(false);
+  // The shell may already have settings cached and the theme comes from localStorage, so keep the server markup until hydrated.
+  const hydrated = useSyncExternalStore(
+    subscribeNothing,
+    () => true,
+    () => false,
+  );
 
-  const current = settings.data;
+  const current = hydrated ? settings.data : undefined;
 
   async function saveServerField(patch: Partial<SettingsInput>) {
     if (current === undefined) return;
