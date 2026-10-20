@@ -333,7 +333,7 @@ function ProductsTab() {
                       <div className="flex items-center gap-2">
                         <span className="max-w-56 min-w-0 truncate font-medium">{product.name}</span>
                         {product.archived && <Badge variant="outline">Archived</Badge>}
-                        {product.isDemo && <span className="text-[10px] font-bold text-primary">Demo</span>}
+                        {product.isDemo && <span className="text-[10px] tracking-wide text-muted-foreground uppercase">Demo</span>}
                       </div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">

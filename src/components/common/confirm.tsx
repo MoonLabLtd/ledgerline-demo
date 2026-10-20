@@ -34,7 +34,14 @@ export function Confirm({ open, onOpenChange, title, description, action, onConf
         {children}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={pending}>Cancel</AlertDialogCancel>
-          <AlertDialogAction variant="destructive" onClick={onConfirm} disabled={pending || confirmDisabled}>
+          <AlertDialogAction
+            variant="destructive"
+            onClick={(event) => {
+              event.preventDefault();
+              onConfirm();
+            }}
+            disabled={pending || confirmDisabled}
+          >
             {action}
           </AlertDialogAction>
         </AlertDialogFooter>

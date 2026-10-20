@@ -137,7 +137,7 @@ function PreferencesCard() {
         ) : (
           <div className="flex flex-col">
             <PreferenceRow
-              id="preference-currency"
+              id="currency"
               label="Reporting currency"
               description="Amounts are displayed in this currency. Existing values are not converted — no exchange rates are applied."
               value={current.currency}
@@ -152,7 +152,7 @@ function PreferencesCard() {
             </PreferenceRow>
 
             <PreferenceRow
-              id="preference-locale"
+              id="locale"
               label="Number locale"
               description={`Controls number and currency formatting, e.g. ${new Intl.NumberFormat(current.locale, {
                 style: "currency",
@@ -170,7 +170,7 @@ function PreferencesCard() {
             </PreferenceRow>
 
             <PreferenceRow
-              id="preference-date-format"
+              id="date-format"
               label="Date format"
               value={current.dateFormat}
               onValueChange={(value) => void saveServerField({ dateFormat: value as SettingsInput["dateFormat"] })}
@@ -184,7 +184,7 @@ function PreferencesCard() {
             </PreferenceRow>
 
             <PreferenceRow
-              id="preference-default-range"
+              id="default-range"
               label="Default date range"
               description="Used when the app opens."
               value={current.defaultRange}
@@ -199,11 +199,12 @@ function PreferencesCard() {
             </PreferenceRow>
 
             <PreferenceRow
-              id="preference-theme"
+              id="theme"
               label="Theme"
               description="Stored in this browser."
               value={theme ?? "system"}
               onValueChange={setTheme}
+              disabled={saving}
             >
               <SelectItem value="light">Light</SelectItem>
               <SelectItem value="dark">Dark</SelectItem>
@@ -253,12 +254,12 @@ function DataStorageCard() {
     try {
       await api("/api/system/demo", { method: "POST", json: { action } });
       invalidate();
+      setDemoConfirmOpen(false);
       toast.success(action === "seed" ? "Demo data added" : "Demo data removed");
     } catch (error) {
       toast.error(errorMessage(error));
     } finally {
       setBusy(false);
-      setDemoConfirmOpen(false);
     }
   }
 
@@ -407,13 +408,7 @@ function DataStorageCard() {
           <Label htmlFor="erase-confirm" className="block">
             Type <span className="font-mono">DELETE ALL DATA</span> to confirm
           </Label>
-          <Input
-            id="erase-confirm"
-            autoComplete="off"
-            placeholder="DELETE ALL DATA"
-            value={phrase}
-            onChange={(event) => setPhrase(event.target.value)}
-          />
+          <Input id="erase-confirm" autoComplete="off" value={phrase} onChange={(event) => setPhrase(event.target.value)} />
         </div>
       </Confirm>
     </Card>

@@ -174,7 +174,6 @@ function CustomerHistorySheet({ id, onOpenChange }: { id: string | null; onOpenC
   const orders = completed.length;
   const revenue = completed.reduce((sum, row) => sum + row.netMinor, 0);
   const average = orders === 0 ? null : Math.round(revenue / orders);
-  const hasCompleted = orders > 0;
 
   return (
     <Sheet
@@ -198,16 +197,13 @@ function CustomerHistorySheet({ id, onOpenChange }: { id: string | null; onOpenC
         ) : (
           <div className="flex-1 overflow-auto px-6 py-5">
             <div className="grid grid-cols-3 gap-2">
-              <StatTile value={hasCompleted ? money(revenue) : "—"} label="Revenue" />
-              <StatTile value={hasCompleted ? number(orders) : "—"} label="Orders" />
-              <StatTile value={hasCompleted && average !== null ? money(average) : "—"} label="Avg. order" />
+              <StatTile value={money(revenue)} label="Revenue" />
+              <StatTile value={number(orders)} label="Orders" />
+              <StatTile value={average === null ? "—" : money(average)} label="Avg. order" />
             </div>
 
             {customer?.notes ? (
-              <div className="mt-4 rounded-md border bg-primary/5 p-3.5">
-                <strong className="block text-xs font-semibold text-foreground">Notes</strong>
-                <p className="mt-1 text-sm whitespace-pre-line text-foreground">{customer.notes}</p>
-              </div>
+              <p className="mt-4 rounded-md border bg-muted/40 p-3.5 text-sm whitespace-pre-line text-foreground">{customer.notes}</p>
             ) : null}
 
             {history.length === 0 ? (
@@ -367,7 +363,7 @@ export function CustomersView() {
                         >
                           {customer.name}
                         </button>
-                        {customer.isDemo && <span className="text-[10px] font-bold text-primary">Demo</span>}
+                        {customer.isDemo && <span className="text-[10px] tracking-wide text-muted-foreground uppercase">Demo</span>}
                       </div>
                     </TableCell>
                     <TableCell className="hidden text-muted-foreground md:table-cell">{customer.email || "—"}</TableCell>
