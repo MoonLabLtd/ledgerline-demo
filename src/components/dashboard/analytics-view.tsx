@@ -99,6 +99,7 @@ export function AnalyticsView() {
     value: data?.weekdays.find((weekday) => weekday.dow === dow)?.revenueMinor ?? 0,
   }));
   const customerRows = (data?.customers ?? []).slice(0, 10);
+  const noCompletedSales = data !== undefined && data.kpis.current.salesCount === 0;
 
   return (
     <div className="flex flex-col gap-4 pt-12 sm:pt-0 md:gap-6">
@@ -176,6 +177,8 @@ export function AnalyticsView() {
         <CardContent>
           {data === undefined ? (
             <Skeleton className="h-72 w-full" />
+          ) : noCompletedSales ? (
+            <EmptyBreakdown />
           ) : (
             <TimeSeriesChart
               series={data.series}
@@ -257,7 +260,13 @@ export function AnalyticsView() {
             <CardDescription>Revenue by weekday (local time)</CardDescription>
           </CardHeader>
           <CardContent>
-            {data === undefined ? <Skeleton className="h-56 w-full" /> : <RankingChart rows={weekdayRows} className="h-56 w-full" />}
+            {data === undefined ? (
+              <Skeleton className="h-56 w-full" />
+            ) : noCompletedSales ? (
+              <EmptyBreakdown />
+            ) : (
+              <RankingChart rows={weekdayRows} className="h-56 w-full" />
+            )}
           </CardContent>
         </Card>
 

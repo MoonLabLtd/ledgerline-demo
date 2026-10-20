@@ -209,7 +209,7 @@ export function DonutChart({ rows, centerLabel = "Total", className = "h-56 w-fu
     <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center">
       <div className={`relative aspect-square w-full max-w-56 shrink-0 ${className}`}>
         <ChartContainer config={config} className="h-full w-full">
-          <PieChart>
+          <PieChart accessibilityLayer>
             <ChartTooltip
               cursor={false}
               content={

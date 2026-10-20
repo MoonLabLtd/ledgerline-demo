@@ -55,11 +55,16 @@ export function KpiCard({ label, value, current, previous, spark, hint }: KpiCar
         <div className="truncate text-2xl font-semibold tracking-tight tabular-nums" title={value}>
           {value}
         </div>
-        <div className="flex min-h-7 items-center justify-between gap-2" title="Compared with the previous period of equal length">
+        <div className="flex min-h-7 items-center justify-between gap-2">
           {change === null ? (
-            <span className="text-xs text-muted-foreground">{hint ?? "No prior-period data"}</span>
+            <span className="text-xs text-muted-foreground" title="Compared with the previous period of equal length">
+              {hint ?? "No prior-period data"}
+            </span>
           ) : (
-            <span className={`inline-flex items-center gap-1 rounded-[5px] px-1.5 py-1 font-mono text-[10px] font-bold ${tone}`}>
+            <span
+              className={`inline-flex items-center gap-1 rounded-[5px] px-1.5 py-1 font-mono text-[10px] font-bold ${tone}`}
+              title="Compared with the previous period of equal length"
+            >
               {up ? (
                 <ArrowUpRight className="size-3" aria-hidden="true" />
               ) : down ? (
