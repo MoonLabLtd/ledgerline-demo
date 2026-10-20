@@ -1,3 +1,12 @@
+import { Suspense } from "react";
+
+import { PageSkeleton } from "@/components/common/page-skeleton";
+import { Overview } from "@/components/dashboard/overview";
+
 export default function Home() {
-  return <p className="text-muted-foreground">Overview arrives in a later release.</p>;
+  return (
+    <Suspense fallback={<PageSkeleton />}>
+      <Overview />
+    </Suspense>
+  );
 }
