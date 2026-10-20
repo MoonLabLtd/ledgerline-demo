@@ -391,7 +391,7 @@ export function SalesTable() {
       </div>
 
       {count > 0 && (
-        <div role="status" className="flex h-10 items-center gap-3 rounded-lg border bg-muted/40 px-3 text-sm">
+        <div role="status" className="flex min-h-10 flex-wrap items-center gap-3 rounded-lg border bg-muted/40 px-3 py-1.5 text-sm">
           <span className="font-medium text-foreground">{count} selected</span>
           <Button variant="ghost" size="sm" onClick={() => table.resetRowSelection()}>
             Clear selection
