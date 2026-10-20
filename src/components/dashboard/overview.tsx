@@ -64,6 +64,50 @@ export function Overview() {
 
   return (
     <div className="flex flex-col gap-4 pt-12 sm:pt-0 md:gap-6">
+      <section aria-label="Key metrics" className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4 lg:grid-cols-3 xl:grid-cols-5">
+        {data === undefined ? (
+          SKELETON_KEYS.map((key) => <KpiSkeleton key={key} />)
+        ) : (
+          <>
+            <KpiCard
+              label="Total revenue"
+              value={money(data.kpis.current.revenueMinor)}
+              current={data.kpis.current.revenueMinor}
+              previous={data.kpis.previous.revenueMinor}
+              spark={data.series.map((point) => point.revenueMinor)}
+            />
+            <KpiCard
+              label="Sales"
+              value={number(data.kpis.current.salesCount)}
+              current={data.kpis.current.salesCount}
+              previous={data.kpis.previous.salesCount}
+              spark={data.series.map((point) => point.orders)}
+            />
+            <KpiCard
+              label="Avg. order value"
+              value={money(data.kpis.current.aovMinor)}
+              current={data.kpis.current.aovMinor}
+              previous={data.kpis.previous.aovMinor}
+              spark={data.series.map((point) => point.aovMinor)}
+            />
+            <KpiCard
+              label="Units sold"
+              value={number(data.kpis.current.units)}
+              current={data.kpis.current.units}
+              previous={data.kpis.previous.units}
+              spark={data.series.map((point) => point.units)}
+            />
+            <KpiCard
+              label="Net profit"
+              value={data.kpis.current.profitMinor !== null ? money(data.kpis.current.profitMinor) : "—"}
+              current={data.kpis.current.profitMinor ?? 0}
+              previous={data.kpis.previous.profitMinor ?? 0}
+              hint={profitHint}
+            />
+          </>
+        )}
+      </section>
+      {showRevenueNote && <p className="text-xs text-muted-foreground">{revenueNote}</p>}
       {noSales ? (
         <Card>
           <EmptyState
@@ -84,50 +128,6 @@ export function Overview() {
         </Card>
       ) : (
         <>
-          <section aria-label="Key metrics" className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4 lg:grid-cols-3 xl:grid-cols-5">
-            {data === undefined ? (
-              SKELETON_KEYS.map((key) => <KpiSkeleton key={key} />)
-            ) : (
-              <>
-                <KpiCard
-                  label="Total revenue"
-                  value={money(data.kpis.current.revenueMinor)}
-                  current={data.kpis.current.revenueMinor}
-                  previous={data.kpis.previous.revenueMinor}
-                  spark={data.series.map((point) => point.revenueMinor)}
-                />
-                <KpiCard
-                  label="Sales"
-                  value={number(data.kpis.current.salesCount)}
-                  current={data.kpis.current.salesCount}
-                  previous={data.kpis.previous.salesCount}
-                  spark={data.series.map((point) => point.orders)}
-                />
-                <KpiCard
-                  label="Avg. order value"
-                  value={money(data.kpis.current.aovMinor)}
-                  current={data.kpis.current.aovMinor}
-                  previous={data.kpis.previous.aovMinor}
-                  spark={data.series.map((point) => point.aovMinor)}
-                />
-                <KpiCard
-                  label="Units sold"
-                  value={number(data.kpis.current.units)}
-                  current={data.kpis.current.units}
-                  previous={data.kpis.previous.units}
-                  spark={data.series.map((point) => point.units)}
-                />
-                <KpiCard
-                  label="Net profit"
-                  value={data.kpis.current.profitMinor !== null ? money(data.kpis.current.profitMinor) : "—"}
-                  current={data.kpis.current.profitMinor ?? 0}
-                  previous={data.kpis.previous.profitMinor ?? 0}
-                  hint={profitHint}
-                />
-              </>
-            )}
-          </section>
-          {showRevenueNote && <p className="text-xs text-muted-foreground">{revenueNote}</p>}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <Card className="lg:col-span-2">
               <CardHeader>
