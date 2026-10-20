@@ -17,13 +17,25 @@ type ConfirmProps = {
   title: string;
   description: React.ReactNode;
   action: string;
+  cancel?: string;
   onConfirm: () => void;
   pending?: boolean;
   confirmDisabled?: boolean;
   children?: React.ReactNode;
 };
 
-export function Confirm({ open, onOpenChange, title, description, action, onConfirm, pending, confirmDisabled, children }: ConfirmProps) {
+export function Confirm({
+  open,
+  onOpenChange,
+  title,
+  description,
+  action,
+  cancel = "Cancel",
+  onConfirm,
+  pending,
+  confirmDisabled,
+  children,
+}: ConfirmProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
@@ -33,7 +45,7 @@ export function Confirm({ open, onOpenChange, title, description, action, onConf
         </AlertDialogHeader>
         {children}
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={pending}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel disabled={pending}>{cancel}</AlertDialogCancel>
           <AlertDialogAction
             variant="destructive"
             onClick={(event) => {
